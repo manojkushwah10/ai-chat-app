@@ -191,6 +191,7 @@ export function ChatWindow({
                 className="bg-white dark:bg-zinc-900"
               >
                 {model.label}
+                {model.supportsTools === false ? " (no tools)" : ""}
               </option>
             ))}
           </select>
@@ -204,7 +205,7 @@ export function ChatWindow({
               <span className="text-base font-bold text-white">S</span>
             </div>
             <p className="text-sm text-zinc-500">
-              Message {currentProvider.label} to get started.
+              Send a message to get started.
             </p>
           </div>
         ) : (
@@ -240,7 +241,7 @@ export function ChatWindow({
             value={input}
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
-            placeholder={`Message ${currentProvider.label}...`}
+            placeholder="Message Switchboard..."
             rows={1}
             className="max-h-[200px] flex-1 resize-none overflow-y-auto bg-transparent py-1.5 text-sm text-zinc-800 outline-none placeholder:text-zinc-500 dark:text-zinc-200"
           />

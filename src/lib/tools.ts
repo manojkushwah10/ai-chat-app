@@ -55,4 +55,47 @@ export const webSearch = tool({
   },
 });
 
-export const tools = { webSearch };
+export const getCurrentDateTime = tool({
+  description:
+    "Get the current date and time. Use this whenever you need to know today's date or resolve a relative time reference (e.g. 'today', 'this week', 'how many days until...') — your training data has a cutoff and you cannot know the current date on your own.",
+  // Models routinely treat "optional" as "nullable": instead of omitting
+  // timeZone they send it as an explicit `null`, and instead of omitting
+  // the whole object they send a bare `null` for the arguments. A plain
+  // z.object({ timeZone: z.string().optional() }) rejects both of those
+  // outright ("expected string, but got null" / "expected object, but got
+  // null") — so every level here explicitly allows null, and execute()
+  // normalizes it below.
+  inputSchema: z
+    .object({
+      timeZone: z
+        .string()
+        .nullable()
+        .optional()
+        .describe(
+          "An IANA time zone name, e.g. 'America/New_York' or 'Asia/Kolkata'. Defaults to UTC if omitted or invalid."
+        ),
+    })
+    .nullable()
+    .optional(),
+  execute: async (input) => {
+    const timeZone = input?.timeZone;
+    const now = new Date();
+    try {
+      const zone = timeZone ?? "UTC";
+      const formatted = new Intl.DateTimeFormat("en-US", {
+        dateStyle: "full",
+        timeStyle: "long",
+        timeZone: zone,
+      }).format(now);
+      return { iso: now.toISOString(), timeZone: zone, formatted };
+    } catch {
+      return {
+        iso: now.toISOString(),
+        timeZone: "UTC",
+        formatted: now.toUTCString(),
+      };
+    }
+  },
+});
+
+export const tools = { webSearch, getCurrentDateTime };

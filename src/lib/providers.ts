@@ -27,15 +27,20 @@ export const PROVIDERS: ProviderConfig[] = [
     id: "groq",
     label: "Groq",
     models: [
-      {
-        id: "llama-3.3-70b-versatile",
-        label: "Llama 3.3 70B Versatile",
-        // Groq's function-calling for this model currently errors ("Failed
-        // to call a function") when a tool is attached — confirmed by hand.
-        supportsTools: false,
-      },
-      { id: "llama-3.1-8b-instant", label: "Llama 3.1 8B Instant" },
+      // First in the list = default model for new conversations. GPT-OSS
+      // 120B is the most reliable of these three at actually invoking
+      // tools correctly (verified with repeated hand testing) — keep it
+      // first unless that changes.
       { id: "openai/gpt-oss-120b", label: "GPT-OSS 120B" },
+      {
+        id: "llama-3.1-8b-instant",
+        label: "Llama 3.1 8B Instant",
+        // Groq occasionally hard-fails ("Failed to call a function") mid
+        // -generation for this model when a tool is attached — not a
+        // schema issue on our end, just an intermittent Groq/model
+        // reliability gap (~1 in 6 in hand testing). Tools stay enabled
+        // since it mostly works, but it isn't the default for that reason.
+      },
     ],
   },
   {
@@ -63,8 +68,13 @@ export function getProviderConfig(providerId: ProviderId): ProviderConfig {
   return provider;
 }
 
-export function modelSupportsTools(providerId: ProviderId, modelId: string): boolean {
-  const model = getProviderConfig(providerId).models.find((m) => m.id === modelId);
+export function modelSupportsTools(
+  providerId: ProviderId,
+  modelId: string,
+): boolean {
+  const model = getProviderConfig(providerId).models.find(
+    (m) => m.id === modelId,
+  );
   return model?.supportsTools ?? true;
 }
 
