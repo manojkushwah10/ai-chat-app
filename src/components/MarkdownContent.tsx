@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
@@ -94,7 +95,11 @@ const components: Components = {
   ),
 };
 
-export function MarkdownContent({ text }: { text: string }) {
+export const MarkdownContent = memo(function MarkdownContent({
+  text,
+}: {
+  text: string;
+}) {
   return (
     <div className="text-sm leading-relaxed [&>*:first-child]:mt-0">
       <ReactMarkdown
@@ -106,4 +111,4 @@ export function MarkdownContent({ text }: { text: string }) {
       </ReactMarkdown>
     </div>
   );
-}
+});

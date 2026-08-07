@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { MarkdownContent } from "@/components/MarkdownContent";
 import type { ChatUIMessage } from "@/lib/chat-types";
 
@@ -17,7 +17,11 @@ function getMessageText(message: ChatUIMessage): string {
     .join("");
 }
 
-export function MessageBubble({ message, isBusy, onEdit }: MessageBubbleProps) {
+export const MessageBubble = memo(function MessageBubble({
+  message,
+  isBusy,
+  onEdit,
+}: MessageBubbleProps) {
   const isUser = message.role === "user";
   const text = getMessageText(message);
   const usage = message.metadata?.usage;
@@ -189,4 +193,4 @@ export function MessageBubble({ message, isBusy, onEdit }: MessageBubbleProps) {
       </div>
     </li>
   );
-}
+});

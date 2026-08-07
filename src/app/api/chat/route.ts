@@ -1,6 +1,7 @@
 import { convertToModelMessages, streamText, type UIMessage } from "ai";
 import { isProviderId, resolveModel } from "@/lib/providers";
 import type { ChatUIMessage } from "@/lib/chat-types";
+import { SYSTEM_PROMPT } from "@/lib/system-prompt";
 
 export const maxDuration = 30;
 
@@ -29,6 +30,7 @@ export async function POST(req: Request) {
   try {
     const result = streamText({
       model: resolveModel(provider, model),
+      system: SYSTEM_PROMPT,
       maxOutputTokens: MAX_OUTPUT_TOKENS,
       messages: await convertToModelMessages(messages),
     });

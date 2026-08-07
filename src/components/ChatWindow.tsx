@@ -2,7 +2,7 @@
 
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PROVIDERS, getProviderConfig, type ProviderId } from "@/lib/providers";
 import type { Conversation } from "@/lib/db";
 import type { ChatUIMessage } from "@/lib/chat-types";
@@ -31,6 +31,7 @@ export function ChatWindow({
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const baseInputRef = useRef("");
+  const messageCountRef = useRef(0);
 
   const transport = useMemo(
     () => new DefaultChatTransport({ api: "/api/chat" }),
@@ -55,7 +56,11 @@ export function ChatWindow({
   });
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    const isNewMessage = messages.length !== messageCountRef.current;
+    messageCountRef.current = messages.length;
+    bottomRef.current?.scrollIntoView({
+      behavior: isNewMessage ? "smooth" : "auto",
+    });
   }, [messages]);
 
   useEffect(() => {
@@ -118,14 +123,17 @@ export function ChatWindow({
     speech.start();
   }
 
-  function handleEditMessage(messageId: string, newText: string) {
-    if (isBusy) return;
-    if (error) clearError();
-    sendMessage(
-      { text: newText, messageId },
-      { body: { provider: conversation.providerId, model: conversation.modelId } }
-    );
-  }
+  const handleEditMessage = useCallback(
+    (messageId: string, newText: string) => {
+      if (isBusy) return;
+      if (error) clearError();
+      sendMessage(
+        { text: newText, messageId },
+        { body: { provider: conversation.providerId, model: conversation.modelId } }
+      );
+    },
+    [isBusy, error, clearError, sendMessage, conversation.providerId, conversation.modelId]
+  );
 
   return (
     <div className="flex h-full min-w-0 flex-1 flex-col bg-white dark:bg-zinc-900">
