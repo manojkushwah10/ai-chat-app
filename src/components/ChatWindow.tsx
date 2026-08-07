@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PROVIDERS, getProviderConfig, type ProviderId } from "@/lib/providers";
 import type { Conversation } from "@/lib/db";
 import type { ChatUIMessage } from "@/lib/chat-types";
-import { MessageBubble } from "@/components/MessageBubble";
+import { MessageBubble, getMessageText } from "@/components/MessageBubble";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 
 const MAX_TEXTAREA_HEIGHT = 200;
@@ -47,6 +47,11 @@ export function ChatWindow({
 
   const currentProvider = getProviderConfig(conversation.providerId);
   const isBusy = status === "submitted" || status === "streaming";
+
+  const lastMessage = messages[messages.length - 1];
+  const showThinking =
+    isBusy &&
+    (lastMessage?.role !== "assistant" || getMessageText(lastMessage).length === 0);
 
   const speech = useSpeechRecognition({
     onTranscript: (transcript) => {
@@ -218,6 +223,18 @@ export function ChatWindow({
                 onEdit={handleEditMessage}
               />
             ))}
+            {showThinking ? (
+              <li className="flex gap-3">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-400 to-violet-500 text-xs font-semibold text-white">
+                  A
+                </div>
+                <div className="flex items-center gap-1 rounded-2xl bg-black/5 px-4 py-3 dark:bg-white/5">
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-zinc-400 [animation-delay:-0.3s] dark:bg-zinc-500" />
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-zinc-400 [animation-delay:-0.15s] dark:bg-zinc-500" />
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-zinc-400 dark:bg-zinc-500" />
+                </div>
+              </li>
+            ) : null}
             <div ref={bottomRef} />
           </ul>
         )}

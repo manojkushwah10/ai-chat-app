@@ -10,7 +10,7 @@ interface MessageBubbleProps {
   onEdit: (messageId: string, newText: string) => void;
 }
 
-function getMessageText(message: ChatUIMessage): string {
+export function getMessageText(message: ChatUIMessage): string {
   return message.parts
     .filter((part) => part.type === "text")
     .map((part) => part.text)
@@ -72,6 +72,13 @@ export const MessageBubble = memo(function MessageBubble({
       e.preventDefault();
       cancelEdit();
     }
+  }
+
+  // An assistant message with no visible text yet (still calling tools /
+  // reasoning) renders nothing here — ChatWindow shows a thinking indicator
+  // for that slot instead, so we don't end up with two rows.
+  if (!isUser && !text) {
+    return null;
   }
 
   if (isEditing) {
