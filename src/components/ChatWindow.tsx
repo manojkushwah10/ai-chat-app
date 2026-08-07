@@ -201,7 +201,7 @@ export function ChatWindow({
         {messages.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center gap-2 px-6 text-center">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-400 to-violet-500">
-              <span className="text-base font-bold text-white">A</span>
+              <span className="text-base font-bold text-white">S</span>
             </div>
             <p className="text-sm text-zinc-500">
               Message {currentProvider.label} to get started.

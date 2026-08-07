@@ -71,10 +71,10 @@ export function Sidebar({
       >
         <div className="flex items-center gap-2 px-4 py-4">
           <div className="flex h-6 w-6 items-center justify-center rounded-md bg-gradient-to-br from-indigo-400 to-violet-500">
-            <span className="text-xs font-bold text-white">A</span>
+            <span className="text-xs font-bold text-white">S</span>
           </div>
           <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-            AI Chat
+            Switchboard AI
           </span>
 
           <div className="ml-auto flex items-center gap-1">

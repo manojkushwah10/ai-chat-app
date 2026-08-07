@@ -1,4 +1,4 @@
-# AI Chat App
+# Switchboard AI
 
 A Next.js chat app that talks to multiple LLM providers, with a Groq/OpenRouter toggle, streaming responses, real chat history, and a web search tool — all running client-first with no backend database.
 

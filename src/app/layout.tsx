@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AI Chat",
+  title: "Switchboard AI",
   description: "Chat with multiple LLM providers",
 };
 
