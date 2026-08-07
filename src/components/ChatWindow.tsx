@@ -58,6 +58,10 @@ export function ChatWindow({
       const base = baseInputRef.current;
       setInput(base ? `${base} ${transcript}` : transcript);
     },
+    // Speak-to-submit: once listening stops for any reason (user stopped
+    // it, silence, or the 30s safety timeout), send whatever was
+    // transcribed instead of waiting for a manual click.
+    onEnd: () => submitMessage(),
   });
 
   useEffect(() => {
@@ -266,12 +270,14 @@ export function ChatWindow({
             type="button"
             onClick={handleToggleListening}
             disabled={!speech.isSupported}
-            aria-label={speech.isListening ? "Stop voice input" : "Start voice input"}
+            aria-label={
+              speech.isListening ? "Stop and send voice message" : "Start voice input"
+            }
             title={
               speech.isSupported
                 ? speech.isListening
-                  ? "Stop voice input"
-                  : "Voice input"
+                  ? "Stop and send (auto-sends after 30s)"
+                  : "Speak to send"
                 : "Voice input not supported in this browser"
             }
             className={
