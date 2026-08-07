@@ -3,6 +3,7 @@ import { isProviderId, modelSupportsTools, resolveModel } from "@/lib/providers"
 import type { ChatUIMessage } from "@/lib/chat-types";
 import { SYSTEM_PROMPT } from "@/lib/system-prompt";
 import { tools } from "@/lib/tools";
+import { checkRateLimit, getClientIdentifier } from "@/lib/rate-limit";
 
 export const maxDuration = 30;
 
@@ -16,6 +17,18 @@ interface ChatRequestBody {
 }
 
 export async function POST(req: Request) {
+  const clientId = getClientIdentifier(req);
+  const rateLimit = checkRateLimit(clientId);
+  if (!rateLimit.allowed) {
+    return Response.json(
+      { error: "Too many requests. Please slow down." },
+      {
+        status: 429,
+        headers: { "Retry-After": String(rateLimit.retryAfterSeconds) },
+      },
+    );
+  }
+
   const { messages, provider, model } = (await req.json()) as ChatRequestBody;
 
   if (!isProviderId(provider)) {
