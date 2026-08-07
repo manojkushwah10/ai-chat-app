@@ -1,4 +1,5 @@
-import type { UIMessage } from "ai";
+import type { InferUITools, UIDataTypes, UIMessage } from "ai";
+import type { tools } from "@/lib/tools";
 
 export interface MessageUsage {
   inputTokens?: number;
@@ -10,4 +11,6 @@ export interface MessageMetadata {
   usage?: MessageUsage;
 }
 
-export type ChatUIMessage = UIMessage<MessageMetadata>;
+export type ChatTools = InferUITools<typeof tools>;
+
+export type ChatUIMessage = UIMessage<MessageMetadata, UIDataTypes, ChatTools>;

@@ -17,6 +17,54 @@ function getMessageText(message: ChatUIMessage): string {
     .join("");
 }
 
+type WebSearchPart = Extract<ChatUIMessage["parts"][number], { type: "tool-webSearch" }>;
+
+function WebSearchChip({ part }: { part: WebSearchPart }) {
+  const chipClass =
+    "flex items-center gap-1.5 rounded-lg bg-black/5 px-2.5 py-1 text-xs text-zinc-500 dark:bg-white/5 dark:text-zinc-400";
+  const searchIcon = (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5 shrink-0">
+      <path
+        fillRule="evenodd"
+        d="M9 3.5a5.5 5.5 0 1 0 3.61 9.65l3.12 3.12a.75.75 0 1 0 1.06-1.06l-3.12-3.12A5.5 5.5 0 0 0 9 3.5ZM5 9a4 4 0 1 1 8 0 4 4 0 0 1-8 0Z"
+        clipRule="evenodd"
+      />
+    </svg>
+  );
+
+  if (part.state === "input-streaming" || part.state === "input-available") {
+    const query = part.input?.query;
+    return (
+      <div className={chipClass}>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" className="h-3.5 w-3.5 shrink-0 animate-spin">
+          <circle cx="10" cy="10" r="7" stroke="currentColor" strokeWidth="2" opacity="0.25" />
+          <path d="M17 10a7 7 0 0 0-7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+        {query ? `Searching for "${query}"…` : "Searching the web…"}
+      </div>
+    );
+  }
+
+  if (part.state === "output-error") {
+    return <div className={chipClass}>{searchIcon} Search failed: {part.errorText}</div>;
+  }
+
+  if (part.state === "output-available") {
+    if ("error" in part.output) {
+      return <div className={chipClass}>{searchIcon} Search failed: {part.output.error}</div>;
+    }
+    const count = part.output.results.length;
+    return (
+      <div className={chipClass}>
+        {searchIcon}
+        Searched for &ldquo;{part.input.query}&rdquo; — {count} result{count === 1 ? "" : "s"}
+      </div>
+    );
+  }
+
+  return null;
+}
+
 export const MessageBubble = memo(function MessageBubble({
   message,
   isBusy,
@@ -122,16 +170,26 @@ export const MessageBubble = memo(function MessageBubble({
       </div>
 
       <div className={"flex min-w-0 max-w-[85%] flex-col gap-1 sm:max-w-[75%] " + (isUser ? "items-end" : "items-start")}>
-        <div
-          className={
-            "rounded-2xl px-4 py-2.5 " +
-            (isUser
-              ? "whitespace-pre-wrap text-sm leading-relaxed bg-indigo-500 text-white"
-              : "bg-black/5 text-zinc-800 dark:bg-white/5 dark:text-zinc-200")
-          }
-        >
-          {isUser ? text : <MarkdownContent text={text} />}
-        </div>
+        {!isUser
+          ? message.parts.map((part, index) =>
+              part.type === "tool-webSearch" ? (
+                <WebSearchChip key={index} part={part} />
+              ) : null
+            )
+          : null}
+
+        {isUser || text ? (
+          <div
+            className={
+              "rounded-2xl px-4 py-2.5 " +
+              (isUser
+                ? "whitespace-pre-wrap text-sm leading-relaxed bg-indigo-500 text-white"
+                : "bg-black/5 text-zinc-800 dark:bg-white/5 dark:text-zinc-200")
+            }
+          >
+            {isUser ? text : <MarkdownContent text={text} />}
+          </div>
+        ) : null}
 
         <div
           className={

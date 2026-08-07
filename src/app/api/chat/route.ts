@@ -1,14 +1,16 @@
-import { convertToModelMessages, streamText, type UIMessage } from "ai";
-import { isProviderId, resolveModel } from "@/lib/providers";
+import { convertToModelMessages, stepCountIs, streamText } from "ai";
+import { isProviderId, modelSupportsTools, resolveModel } from "@/lib/providers";
 import type { ChatUIMessage } from "@/lib/chat-types";
 import { SYSTEM_PROMPT } from "@/lib/system-prompt";
+import { tools } from "@/lib/tools";
 
 export const maxDuration = 30;
 
 const MAX_OUTPUT_TOKENS = 2048;
+const MAX_AGENT_STEPS = 6;
 
 interface ChatRequestBody {
-  messages: UIMessage[];
+  messages: ChatUIMessage[];
   provider: string;
   model: string;
 }
@@ -27,12 +29,15 @@ export async function POST(req: Request) {
     return Response.json({ error: "Missing model id" }, { status: 400 });
   }
 
+  const useTools = modelSupportsTools(provider, model);
+
   try {
     const result = streamText({
       model: resolveModel(provider, model),
       system: SYSTEM_PROMPT,
+      ...(useTools ? { tools, stopWhen: stepCountIs(MAX_AGENT_STEPS) } : {}),
       maxOutputTokens: MAX_OUTPUT_TOKENS,
-      messages: await convertToModelMessages(messages),
+      messages: await convertToModelMessages(messages, useTools ? { tools } : undefined),
     });
 
     return result.toUIMessageStreamResponse<ChatUIMessage>({
@@ -48,7 +53,16 @@ export async function POST(req: Request) {
         }
       },
       onError: (error) => {
+        console.error("Chat stream error:", error);
         if (error instanceof Error) {
+          return error.message;
+        }
+        if (
+          typeof error === "object" &&
+          error !== null &&
+          "message" in error &&
+          typeof error.message === "string"
+        ) {
           return error.message;
         }
         return "An error occurred while streaming the response.";
