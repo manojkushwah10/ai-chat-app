@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { UIMessage } from "ai";
 import {
   deleteConversation as deleteConversationFromDB,
   getAllConversations,
@@ -9,10 +8,11 @@ import {
   type Conversation,
 } from "@/lib/db";
 import { DEFAULT_PROVIDER, getProviderConfig, type ProviderId } from "@/lib/providers";
+import type { ChatUIMessage } from "@/lib/chat-types";
 
 const TITLE_MAX_LENGTH = 48;
 
-function deriveTitle(messages: UIMessage[]): string {
+function deriveTitle(messages: ChatUIMessage[]): string {
   const firstUserMessage = messages.find((message) => message.role === "user");
   const text = firstUserMessage?.parts
     .filter((part) => part.type === "text")
@@ -119,7 +119,7 @@ export function useConversations() {
     []
   );
 
-  const persistMessages = useCallback((id: string, messages: UIMessage[]) => {
+  const persistMessages = useCallback((id: string, messages: ChatUIMessage[]) => {
     setConversations((prev) =>
       prev.map((c) => {
         if (c.id !== id) return c;

@@ -1,7 +1,10 @@
 import { convertToModelMessages, streamText, type UIMessage } from "ai";
 import { isProviderId, resolveModel } from "@/lib/providers";
+import type { ChatUIMessage } from "@/lib/chat-types";
 
 export const maxDuration = 30;
+
+const MAX_OUTPUT_TOKENS = 2048;
 
 interface ChatRequestBody {
   messages: UIMessage[];
@@ -26,11 +29,22 @@ export async function POST(req: Request) {
   try {
     const result = streamText({
       model: resolveModel(provider, model),
-      maxOutputTokens: 500,
+      maxOutputTokens: MAX_OUTPUT_TOKENS,
       messages: await convertToModelMessages(messages),
     });
 
-    return result.toUIMessageStreamResponse({
+    return result.toUIMessageStreamResponse<ChatUIMessage>({
+      messageMetadata: ({ part }) => {
+        if (part.type === "finish") {
+          return {
+            usage: {
+              inputTokens: part.totalUsage.inputTokens,
+              outputTokens: part.totalUsage.outputTokens,
+              totalTokens: part.totalUsage.totalTokens,
+            },
+          };
+        }
+      },
       onError: (error) => {
         if (error instanceof Error) {
           return error.message;

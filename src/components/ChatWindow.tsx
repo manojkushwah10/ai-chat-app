@@ -1,10 +1,13 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport, type UIMessage } from "ai";
+import { DefaultChatTransport } from "ai";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { PROVIDERS, getProviderConfig, type ProviderId } from "@/lib/providers";
 import type { Conversation } from "@/lib/db";
+import type { ChatUIMessage } from "@/lib/chat-types";
+import { MessageBubble } from "@/components/MessageBubble";
+import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 
 const MAX_TEXTAREA_HEIGHT = 200;
 
@@ -14,7 +17,7 @@ interface ChatWindowProps {
     id: string,
     patch: { providerId: ProviderId; modelId: string }
   ) => void;
-  onMessagesChange: (id: string, messages: UIMessage[]) => void;
+  onMessagesChange: (id: string, messages: ChatUIMessage[]) => void;
   onOpenSidebar: () => void;
 }
 
@@ -27,13 +30,14 @@ export function ChatWindow({
   const [input, setInput] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const baseInputRef = useRef("");
 
   const transport = useMemo(
     () => new DefaultChatTransport({ api: "/api/chat" }),
     []
   );
 
-  const { messages, sendMessage, status, error, clearError } = useChat({
+  const { messages, sendMessage, status, error, clearError } = useChat<ChatUIMessage>({
     id: conversation.id,
     messages: conversation.messages,
     transport,
@@ -43,9 +47,23 @@ export function ChatWindow({
   const currentProvider = getProviderConfig(conversation.providerId);
   const isBusy = status === "submitted" || status === "streaming";
 
+  const speech = useSpeechRecognition({
+    onTranscript: (transcript) => {
+      const base = baseInputRef.current;
+      setInput(base ? `${base} ${transcript}` : transcript);
+    },
+  });
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, MAX_TEXTAREA_HEIGHT)}px`;
+  }, [input]);
 
   function handleProviderChange(nextProviderId: ProviderId) {
     if (nextProviderId === conversation.providerId) return;
@@ -65,14 +83,13 @@ export function ChatWindow({
   function submitMessage() {
     const text = input.trim();
     if (!text || isBusy) return;
+    if (speech.isListening) speech.stop();
     if (error) clearError();
     sendMessage(
       { text },
       { body: { provider: conversation.providerId, model: conversation.modelId } }
     );
     setInput("");
-    const el = textareaRef.current;
-    if (el) el.style.height = "auto";
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -90,9 +107,24 @@ export function ChatWindow({
 
   function handleInputChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
     setInput(e.target.value);
-    const el = e.target;
-    el.style.height = "auto";
-    el.style.height = `${Math.min(el.scrollHeight, MAX_TEXTAREA_HEIGHT)}px`;
+  }
+
+  function handleToggleListening() {
+    if (speech.isListening) {
+      speech.stop();
+      return;
+    }
+    baseInputRef.current = input;
+    speech.start();
+  }
+
+  function handleEditMessage(messageId: string, newText: string) {
+    if (isBusy) return;
+    if (error) clearError();
+    sendMessage(
+      { text: newText, messageId },
+      { body: { provider: conversation.providerId, model: conversation.modelId } }
+    );
   }
 
   return (
@@ -170,38 +202,12 @@ export function ChatWindow({
         ) : (
           <ul className="mx-auto flex max-w-3xl flex-col gap-6 px-3 py-6 sm:px-6">
             {messages.map((message) => (
-              <li
+              <MessageBubble
                 key={message.id}
-                className={
-                  "flex gap-3 " +
-                  (message.role === "user" ? "flex-row-reverse" : "flex-row")
-                }
-              >
-                <div
-                  className={
-                    "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-semibold " +
-                    (message.role === "user"
-                      ? "bg-black/5 text-zinc-600 dark:bg-white/10 dark:text-zinc-300"
-                      : "bg-gradient-to-br from-indigo-400 to-violet-500 text-white")
-                  }
-                >
-                  {message.role === "user" ? "Y" : "A"}
-                </div>
-                <div
-                  className={
-                    "max-w-[85%] whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-sm leading-relaxed sm:max-w-[75%] " +
-                    (message.role === "user"
-                      ? "bg-indigo-500 text-white"
-                      : "bg-black/5 text-zinc-800 dark:bg-white/5 dark:text-zinc-200")
-                  }
-                >
-                  {message.parts.map((part, index) =>
-                    part.type === "text" ? (
-                      <span key={index}>{part.text}</span>
-                    ) : null
-                  )}
-                </div>
-              </li>
+                message={message}
+                isBusy={isBusy}
+                onEdit={handleEditMessage}
+              />
             ))}
             <div ref={bottomRef} />
           </ul>
@@ -230,6 +236,35 @@ export function ChatWindow({
             rows={1}
             className="max-h-[200px] flex-1 resize-none overflow-y-auto bg-transparent py-1.5 text-sm text-zinc-800 outline-none placeholder:text-zinc-500 dark:text-zinc-200"
           />
+          <button
+            type="button"
+            onClick={handleToggleListening}
+            disabled={!speech.isSupported}
+            aria-label={speech.isListening ? "Stop voice input" : "Start voice input"}
+            title={
+              speech.isSupported
+                ? speech.isListening
+                  ? "Stop voice input"
+                  : "Voice input"
+                : "Voice input not supported in this browser"
+            }
+            className={
+              "mb-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl transition-colors disabled:opacity-30 " +
+              (speech.isListening
+                ? "animate-pulse bg-red-500 text-white"
+                : "text-zinc-500 hover:bg-black/10 dark:text-zinc-400 dark:hover:bg-white/10")
+            }
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+              className="h-4 w-4"
+            >
+              <path d="M10 2a3 3 0 0 0-3 3v5a3 3 0 1 0 6 0V5a3 3 0 0 0-3-3Z" />
+              <path d="M5.5 9.5a.75.75 0 0 1 .75.75 3.75 3.75 0 0 0 7.5 0 .75.75 0 0 1 1.5 0 5.25 5.25 0 0 1-4.5 5.196V17h1.75a.75.75 0 0 1 0 1.5h-5a.75.75 0 0 1 0-1.5h1.75v-1.554A5.25 5.25 0 0 1 4.75 10.25a.75.75 0 0 1 .75-.75Z" />
+            </svg>
+          </button>
           <button
             type="submit"
             disabled={isBusy || !input.trim()}

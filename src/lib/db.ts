@@ -1,13 +1,13 @@
 import { openDB, type DBSchema, type IDBPDatabase } from "idb";
-import type { UIMessage } from "ai";
 import type { ProviderId } from "@/lib/providers";
+import type { ChatUIMessage } from "@/lib/chat-types";
 
 export interface Conversation {
   id: string;
   title: string;
   providerId: ProviderId;
   modelId: string;
-  messages: UIMessage[];
+  messages: ChatUIMessage[];
   createdAt: number;
   updatedAt: number;
 }
