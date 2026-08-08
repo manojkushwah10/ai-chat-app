@@ -38,6 +38,11 @@ export function ChatWindow({
     []
   );
 
+  const timeZone = useMemo(
+    () => Intl.DateTimeFormat().resolvedOptions().timeZone,
+    []
+  );
+
   const { messages, sendMessage, status, error, clearError } = useChat<ChatUIMessage>({
     id: conversation.id,
     messages: conversation.messages,
@@ -101,7 +106,13 @@ export function ChatWindow({
     if (error) clearError();
     sendMessage(
       { text },
-      { body: { provider: conversation.providerId, model: conversation.modelId } }
+      {
+        body: {
+          provider: conversation.providerId,
+          model: conversation.modelId,
+          timeZone,
+        },
+      }
     );
     setInput("");
   }
@@ -138,10 +149,24 @@ export function ChatWindow({
       if (error) clearError();
       sendMessage(
         { text: newText, messageId },
-        { body: { provider: conversation.providerId, model: conversation.modelId } }
+        {
+          body: {
+            provider: conversation.providerId,
+            model: conversation.modelId,
+            timeZone,
+          },
+        }
       );
     },
-    [isBusy, error, clearError, sendMessage, conversation.providerId, conversation.modelId]
+    [
+      isBusy,
+      error,
+      clearError,
+      sendMessage,
+      conversation.providerId,
+      conversation.modelId,
+      timeZone,
+    ]
   );
 
   return (
